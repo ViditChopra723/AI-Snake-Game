@@ -1,4 +1,3 @@
-
 import sys
 import math
 import random
@@ -8,10 +7,10 @@ from tkinter import messagebox
 from collections import deque
 
 #set number of rows.
-rows = 10
+rows = 20
 w = 500
 
-
+"******************************************************     Snake Game code from Tutorial on Pygame code, https://pythonspot.com/snake-with-pygame/ ***********************************************"
 class cube(object):
     rows = 20
     w = 500
@@ -55,25 +54,24 @@ class snake(object):
 
     def move(self, dir):
 
-
         keys = dir
 
-        if keys == 4:
+        if keys == 3:
             self.dirnx = -1
             self.dirny = 0
             self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
 
-        elif keys == 3:
+        elif keys == 4:
             self.dirnx = 1
             self.dirny = 0
             self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
 
-        elif keys == 2:
+        elif keys == 1:
             self.dirnx = 0
             self.dirny = -1
             self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
 
-        elif keys == 1:
+        elif keys == 2:
             self.dirnx = 0
             self.dirny = 1
             self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
@@ -142,8 +140,7 @@ def drawGrid(w, rows, surface):
         pygame.draw.line(surface, (255, 255, 255), (0, y), (w, y))
 
 
-def redrawWindow(surface):
-    global rows, width, s, snack
+def redrawWindow(surface, s, snack, width, rows):
     surface.fill((0, 0, 0))
     s.draw(surface)
     snack.draw(surface)
@@ -155,8 +152,8 @@ def randomSnack(rows, item):
     positions = item.body
 
     while True:
-        x = random.randrange(rows)
-        y = random.randrange(rows)
+        x = random.randrange(rows - 1)
+        y = random.randrange(rows - 1)
         if len(list(filter(lambda z: z.pos == (x, y), positions))) > 0:
             continue
         else:
@@ -174,6 +171,14 @@ def message_box(subject, content):
         root.destroy()
     except:
         pass
+
+"*********************************************************************************************************************************** end snake game ***********************************************************"
+
+
+
+#################################### code from https://github.com/chuyangliu/snake/blob/master/snake/base/pos.py ##################################\
+
+"               these are basic functions to use in the algorithims.                      "
 
 
 class _TableCell:
@@ -193,27 +198,69 @@ class _TableCell:
         # Longest path
         self.visit = False
 
-def direc_to(src_pos, adj_pos):
-    """Return the direction of an adjacent Pos relative to self."""
+
+def direc_from(src_pos, adj_pos):
+    " if x the same and y diff = 1 return down, if x the same and y diff = -1 return up"
+
     if src_pos[0] == adj_pos[0]:
         diff = src_pos[1] - adj_pos[1]
         if diff == 1:
-            return 2
-        elif diff == -1:
+
             return 1
+        elif diff == -1:
+
+            return 2
     elif src_pos[1] == adj_pos[1]:
         diff = src_pos[0] - adj_pos[0]
         if diff == 1:
-            return 4
-        elif diff == -1:
+
             return 3
+        elif diff == -1:
+
+            return 4
+    return 0
+
+
+def adj(x, y, direc):
+    """Return the adjacent Pos in a given direction."""
+    if direc == 4:
+        return (x - 1, y)
+    elif direc == 3:
+        return (x + 1, y)
+    elif direc == 2:
+        return (x, y - 1)
+    elif direc == 1:
+        return (x, y + 1)
+    else:
+        return None
+
+
+def all_adj(x,y):
+    """Return a list of all the adjacent Pos."""
+    adjs = []
+    direc = [1,2,3,4]
+
+    for dir in direc:
+        adjs.append(adj(x,y,dir))
+    return adjs
+
+
+def manhattan_dist(p1, p2):
+    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+###########################################################           end of code         ##################################################/
+
+
+def out_of_bounds(t) :
+    if t[0] > rows - 1 or t[0] < 0:
+        return 1
+    if t[1] > rows - 1 or t[1] < 0:
+        return 1
     return 0
 
 
 def shortest_path(src,dst,snake):
     table = [[_TableCell() for _ in range(rows)]
              for _ in range(rows)]
-
 
     queue = deque()
     queue.append([(src[0], src[1])])
@@ -223,7 +270,8 @@ def shortest_path(src,dst,snake):
     for se in snake.body:
         seen.add(se.pos)
 
-    path = queue
+    if dst == snake.body[-1].pos:
+        seen.remove(dst)
 
     while queue:
 
@@ -239,7 +287,6 @@ def shortest_path(src,dst,snake):
                 adjs.remove(adj)
 
         for x2, y2 in adjs:
-            #((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
             if 0 <= x2 < rows - 1 and 0 <= y2 < rows - 1 and (x2, y2) not in seen:
                 queue.append(path + [(x2, y2)])
                 seen.add((x2, y2))
@@ -248,10 +295,8 @@ def shortest_path(src,dst,snake):
 def build_path(path):
     directions = []
     for i in range(len(path) - 1):
-        directions.append(direc_to(path[i], path[i + 1]))
-
+        directions.append(direc_from(path[i], path[i + 1]))
     return directions
-
 
 def opposite(direc):
         """Return the opposite direction."""
@@ -272,23 +317,24 @@ def longest_path(src,dst, snake):
     table = [[_TableCell() for _ in range(rows)]
              for _ in range(rows)]
 
-    for row in table:
-        for col in row:
-            col.reset()
-
     cur = [src[0],src[1]]
-
     # Set all positions on the shortest path to 'visited'
     table[src[0]][src[1]].visit = True
 
+    for se in snake.body:
+        table[se.pos[0]][se.pos[1]].visit = True
+
+
     for direc in path:
         c = adj(cur[0], cur[1], direc)
-        cur = [c[0], c[1]]
-        table[cur[0]][cur[1]].visit = True
+        if not out_of_bounds(c):
+            cur = [c[0], c[1]]
+            table[cur[0]][cur[1]].visit = True
 
     # Extend the path between each pair of the positions
-    idx = 0
-    while True:
+    idx, cur = 0, [src[0], src[1]]
+    flag = 1
+    while flag:
         cur_direc = path[idx]
         nxt = adj(cur[0], cur[1], cur_direc)
 
@@ -301,7 +347,7 @@ def longest_path(src,dst, snake):
         for test_direc in tests:
             cur_test = adj(cur[0], cur[1],test_direc)
             nxt_test = adj(nxt[0], nxt[1],test_direc)
-            if not out_of_bounds(cur_test) and not out_of_bounds(nxt_test):
+            if not out_of_bounds(cur_test) and not out_of_bounds(nxt_test) and not table[cur_test[0]][cur_test[1]].visit == True:
                 table[cur_test[0]][cur_test[1]].visit = True
                 table[nxt_test[0]][nxt_test[1]].visit = True
                 path.insert(idx, test_direc)
@@ -313,73 +359,9 @@ def longest_path(src,dst, snake):
             cur = nxt
             idx += 1
             if idx >= len(path):
-                break
+                flag = 0
 
     return path
-
-def move_on_path(s2, path):
-
-    for p in path:
-        return
-        #s2.move()
-
-
-#################################### code from https://github.com/chuyangliu/snake/blob/master/snake/base/pos.py ##################################\
-
-
-def adj(x, y, direc):
-    """Return the adjacent Pos in a given direction."""
-    if direc == 3:
-        return P(x - 1, y)
-    elif direc == 4:
-        return P(x + 1, y)
-    elif direc == 1:
-        return P(x, y - 1)
-    elif direc == 2:
-        return P(x, y + 1)
-    else:
-        return None
-
-
-def P(x,y):
-    tmp = [0,0]
-    tmp[0] = x
-    tmp[1] = y
-
-    return tmp
-
-
-def all_adj(x,y):
-    """Return a list of all the adjacent Pos."""
-    adjs = []
-    direc = [1,2,3,4]
-
-    for dir in direc:
-        adjs.append(adj(x,y,dir))
-
-
-    return adjs
-
-
-def manhattan_dist(p1, p2):
-    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
-###########################################################           end of code         ##################################################/
-
-
-def out_of_bounds(t) :
-    if t[0] > rows  or t[0] < 0:
-        return 1
-    if t[1] > rows  or t[1] < 0:
-        return 1
-
-    return 0
-
-def find_safe(s):
-    dirx = s.dirnx
-    diry = s.diry
-
-    return [opposite(dirx)]
-
 
 class greedy():
     def __init__(self, snake, sn):
@@ -391,119 +373,89 @@ class greedy():
     def next_direc(self):
         # Step 1 find shortest path from head to food, if it exists go to step 2, if not go to step 4
         path_to_food = shortest_path(self.head.pos, self.snack.pos, self.snake)
-        if path_to_food:
-            for p in path_to_food:
-                for s in snake.body:
-                    if p == s.pos:
-                        return find_safe(self.snake)
 
-            return path_to_food
+        # Step 2 move the fake snake along this path (need function to move fake snake, fully on path)
+        if len(path_to_food) > 0:
+                s_copy = self.snake
+            # Step 3 find the longest path from fake snake's head to its tail, if it exists return the first direction from
+            # the shortest path to the actual snake move
+                path_to_tail = longest_path(s_copy.body[0].pos, s_copy.body[-1].pos, s_copy)
+                if len(path_to_tail)>1:
+                    return [path_to_food[0]]
 
-        # # # Step 2 move the fake snake along this path (need function to move fake snake, fully on path)
-        # # if len(path_to_food) > 0:
-        # #         s_copy = self.snake
-        # #         ("step 2 1:", s_copy.body[0].pos)
-        # #         #move_on_path(s_copy, path_to_food)
-        # #         print("step 2 2:", s_copy.body[0].pos )
-        # #         print("copy tail", s_copy.body[-1].pos)
-        # #     # Step 3 find the longest path from fake snake's head to its tail, if it exists return the first direction from
-        # #     # the shortest path to the actual snake move
-        # #         path_to_tail = longest_path(s_copy.body[0].pos, s_copy.body[-1].pos, s_copy)
-        # #         print("step 3", path_to_tail)
-        # #         if len(path_to_tail)>1:
-        # #             print("step 3 2")
-        # #             return path_to_food[0]
-        # #
-        # #
-        # # # Step 4 find the longest path from actual snake's head to tail. If it exists return this path's first direction to the actual snake. if not go to step 5.
-        # # path_to_tail = longest_path(self.head.pos,self.tail.pos, self.snake)
-        # # print("step 4", path_to_tail)
-        # # if len(path_to_tail)>1:
-        # #     return path_to_tail[0]
-        # #
-        # # Step 5 if none of this works then we need to move the snake away from the food as much as possible so we calculate the manhattan distance of every
-        # # adajacent square from the head and move the snake towards that direction  (need function to find the adjacent heads, and to determine if it is out of bounds, and a function for manhattan distance)
-        # max_dist = -1
-        # if self.snake.dirnx == 0 and self.snake.dirny == 1:
-        #     direction = 2
-        # elif self.snake.dirnx == 1 and self.snake.dirny == 0:
-        #     direction = 4
-        # elif self.snake.dirnx == -1 and self.snake.dirny == 0:
-        #     direction = 3
-        # elif self.snake.dirnx == 0 and self.snake.dirny == -1:
-        #     direction = 1
-        # d = 0
-        #
-        #
-        # for adj in all_adj(self.head.pos[0], self.head.pos[1], direction):
-        #     if self.head.pos[0] - adj[0] == 0 and self.head.pos[1]-adj[1] == -1:
-        #         d = 2
-        #     elif self.head.pos[0] - adj[0] == 0 and self.head.pos[1]-adj[1] == 1:
-        #         d = 1
-        #     elif self.head.pos[0] - adj[0] == 1 and self.head.pos[1]-adj[1] == 0:
-        #         d = 3
-        #     elif self.head.pos[0] - adj[0] == -1 and self.head.pos[1]-adj[1] == 0:
-        #         d = 4
-        #     if out_of_bounds(adj) == 0:
-        #         dist = manhattan_dist(adj, self.snack.pos)
-        #         if dist > max_dist:
-        #             max_dist = dist
-        #             direction = d
-        #
-        # print("step 5", direction)
-        # return direction
+
+        # Step 4 find the longest path from actual snake's head to tail. If it exists return this path's first direction to the actual snake. if not go to step 5.
+        path_to_tail = longest_path(self.head.pos,self.tail.pos, self.snake)
+
+        if len(path_to_tail)>1:
+            return [path_to_tail[0]]
+
+        # Step 5 if none of this works then we need to move the snake away from the food as much as possible so we calculate the manhattan distance of every
+        # adajacent square from the head and move the snake towards that direction  (need function to find the adjacent heads, and to determine if it is out of bounds, and a function for manhattan distance)
+        max_dist = -1
+
+        direc = 0
+        x = self.head.pos[0]
+        y = self.head.pos[1]
+        ille = []
+        for se in snake.body:
+            print(se.pos)
+            ille.append(se.pos)
+
+        adjs = [(x, y - 1),(x, y + 1),(x - 1, y), (x + 1, y)]
+        for i, adji in enumerate(adjs):
+            if not out_of_bounds(adji) and adji not in ille:
+                dist = manhattan_dist(adji, self.snack.pos)
+                if dist > max_dist:
+                    max_dist = dist
+                    direc = direc_from(self.head.pos, adji)
+
+        return [direc]
 
 def main():
-    global width, rows, s, snack
     width = 500
     rows = 20
     win = pygame.display.set_mode((width, width))
-    s = snake((255, 0, 0), (10, 10))
+    s = snake((255, 0, 0), (2, 2))
     s.addCube()
     snack = cube(randomSnack(rows, s), color=(0, 255, 0))
     flag = True
-
     clock = pygame.time.Clock()
-    last_direc = 2
 
     while flag:
 
         g = greedy(s, snack)
         next_direc = g.next_direc()
+        print("tick", "head is ", s.body[0].pos, "snack is at ",  snack.pos, "going direction ",   next_direc, "score is ", len(s.body))
 
-        if next_direc:
-            for n in next_direc:
-                pygame.time.delay(100)
-                clock.tick(10)
-                last_direc = n
-                if n == 2:
-                    s.move(2)
-                elif n == 1:
-                    s.move(1)
-                elif n == 4:
-                    s.move(4)
-                elif n == 3:
-                    s.move(3)
+        for n in next_direc:
+            pygame.time.delay(50)
+            clock.tick(40)
+            if n == 2:
+                s.move(2)
+            elif n == 1:
+                s.move(1)
+            elif n == 4:
+                s.move(4)
+            elif n == 3:
+                s.move(3)
+            else:
+                s.move(1)
 
-                for sp in snake.body:
-                    print(sp.pos, "pos main")
+            if s.body[0].pos == snack.pos:
+                s.addCube()
+                snack = cube(randomSnack(rows, s), color=(0, 255, 0))
 
-                if s.body[0].pos == snack.pos:
+            for x in range(len(s.body)):
+                if s.body[x].pos in list(map(lambda z: z.pos, s.body[x + 1:])):
+                    print('Score: ', len(s.body))
+                    #message_box('You Lost!', 'Play again...')
+                    s.reset((2, 2))
                     s.addCube()
                     snack = cube(randomSnack(rows, s), color=(0, 255, 0))
-                    g = greedy(s, snack)
-                    next_direc = g.next_direc()
+                    break
 
-                for x in range(len(s.body)):
-                    if s.body[x].pos in list(map(lambda z: z.pos, s.body[x + 1:])):
-                        print('Score: ', len(s.body))
-                        message_box('You Lost!', 'Play again...')
-                        s.reset((10, 10))
-                        break
-
-                redrawWindow(win)
-        else:
-            s.move(last_direc)
+            redrawWindow(win , s, snack, width, rows)
 
 
 main()

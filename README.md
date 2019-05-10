@@ -22,4 +22,7 @@ Files:
     
 
 Installation:
-  
+  pip3 install -r requirements.txt
+ 
+ Run:
+ 	python3 snake.py 
